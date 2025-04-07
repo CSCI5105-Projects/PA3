@@ -21,6 +21,10 @@ service replicaServer {
 
     # For coordinator to call
     FileInfo get_version(1: string filename) # Called by coordinator to get version from a server
+    list<FileInfo> get_all_files() # Called by a coordinator on a node to get a list of files on it
+
+    # Called on Coordinator
+    list<FileInfo> cord_list_files()
 
 
     # For Sending Data Around

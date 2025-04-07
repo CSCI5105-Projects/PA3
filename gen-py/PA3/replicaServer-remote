@@ -28,6 +28,8 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  string read_file(string filename)')
     print('  void confirm_operation()')
     print('  FileInfo get_version(string filename)')
+    print('   get_all_files()')
+    print('   cord_list_files()')
     print('  i32 get_file_size(string filename)')
     print('')
     sys.exit(0)
@@ -131,6 +133,18 @@ elif cmd == 'get_version':
         print('get_version requires 1 args')
         sys.exit(1)
     pp.pprint(client.get_version(args[0],))
+
+elif cmd == 'get_all_files':
+    if len(args) != 0:
+        print('get_all_files requires 0 args')
+        sys.exit(1)
+    pp.pprint(client.get_all_files())
+
+elif cmd == 'cord_list_files':
+    if len(args) != 0:
+        print('cord_list_files requires 0 args')
+        sys.exit(1)
+    pp.pprint(client.cord_list_files())
 
 elif cmd == 'get_file_size':
     if len(args) != 1:

@@ -19,10 +19,12 @@ sys.path.insert(0, glob.glob('../thrift/thrift-0.19.0/lib/py/build/lib*')[0])
 from PA3 import replicaServer
 from PA3.ttypes import FileInfo, ContactInfo
 
-
 from thrift.transport import TSocket, TTransport
 from thrift.protocol import TBinaryProtocol
 from thrift.server import TServer
+
+# Our Imported Libraries
+import queue
 
 DEBUG = 1
 
@@ -37,6 +39,9 @@ class ReplicaServerHandler():
         self.role = None
 
         self.import_compute_nodes()
+
+        if (self.role == 1):
+            self.setup_coordinator()
 
 
     def import_compute_nodes(self):
@@ -60,9 +65,34 @@ class ReplicaServerHandler():
         print(self.coordinatorContact)
         print(self.role)
 
+    def setup_coordinator(self):
+        print(f"Initializing Server as Coordinator")
+        self.jobQueue = queue.Queue()
+
+    def get_all_files(self):
+        """Called by coordinator onto node to get all files"""
+        return self.contained_files
+
+    def cord_list_files(self):
+        """Called onto Coordinator"""
+
+
     def list_files(self):
         """Externally Called From Client"""
-        returnVal = []
+
+        # Contact Coordinator, asking for list of files
+        transport = TSocket.TSocket(self.coordinatorContact.ip, self.coordinatorContact.port)
+        transport = TTransport.TBufferedTransport(transport)
+        protocol = TBinaryProtocol.TBinaryProtocol(transport)
+        client = replicaServer.Client(protocol)
+
+        transport.open()
+
+        returnVal = client.cord_list_files()
+
+        transport.close
+
+        # Return List of Files
         return returnVal
 
     def read_file(filename):

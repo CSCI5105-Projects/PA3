@@ -39,7 +39,13 @@ class ReplicaServerHandler():
 
     def import_compute_nodes(self):
         """Reads compute_nodes.txt to determine list of nodes to connect to"""
-        None
+
+        with open("compute_nodes.txt") as file:
+            self.NR, self.NW = file.readline().strip().split(",")
+
+            for row in file:
+                ip, port = row.strip().split(",")
+                self.server_list.append(ContactInfo(ip, port))
 
     def list_files(self):
         """Externally Called From Client"""

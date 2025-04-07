@@ -17,7 +17,7 @@ sys.path.insert(0, glob.glob('../thrift/thrift-0.19.0/lib/py/build/lib*')[0])
 
 # Thrift Libraries
 from PA3 import replicaServer
-from PA3.ttypes import FileInfo
+from PA3.ttypes import FileInfo, ContactInfo
 
 
 from thrift.transport import TSocket, TTransport
@@ -28,13 +28,30 @@ DEBUG = 1
 
 class ReplicaServerHandler():
     def __init__(self, node_ip, node_port):
-        self.node_ip = node_ip
-        self.node_port = node_port
+        self.info = ContactInfo(node_ip, node_port)
+        self.contained_files = []
+        self.server_list = []
+        self.NR = 0
+        self.NW = 0
 
         self.import_compute_nodes()
 
 
     def import_compute_nodes(self):
+        """Reads compute_nodes.txt to determine list of nodes to connect to"""
+        None
+
+    def list_files(self):
+        """Externally Called From Client"""
+        returnVal = []
+        return returnVal
+
+    def read_file(filename):
+        """Externally Called From Client"""
+        None
+
+    def confirm_operation():
+        """Externally Called From Client"""
         None
 
 

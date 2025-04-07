@@ -6,6 +6,11 @@ struct FileInfo {
     2: i32 version
 }
 
+struct ContactInfo {
+    1: string ip
+    2: i32 port
+}
+
 service replicaServer {
 
     # For client to call

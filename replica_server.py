@@ -33,6 +33,8 @@ class ReplicaServerHandler():
         self.server_list = []
         self.NR = 0
         self.NW = 0
+        self.coordinatorContact = None 
+        self.role = None
 
         self.import_compute_nodes()
 
@@ -44,8 +46,19 @@ class ReplicaServerHandler():
             self.NR, self.NW = file.readline().strip().split(",")
 
             for row in file:
-                ip, port = row.strip().split(",")
-                self.server_list.append(ContactInfo(ip, port))
+                ip, port, role = row.strip().split(",")
+                port = int(port)
+                role = int(role)
+                info = ContactInfo(ip, port)
+                self.server_list.append(info)
+                if role == 1:
+                    self.coordinatorContact = info
+
+        if self.info == self.coordinatorContact:
+            self.role = 1
+
+        print(self.coordinatorContact)
+        print(self.role)
 
     def list_files(self):
         """Externally Called From Client"""

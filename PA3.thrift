@@ -11,9 +11,15 @@ struct ContactInfo {
     2: i32 port
 }
 
-struct dataChunk{
-    1:list<byte> data
+struct DataChunk{
+    1:binary data
     2:i32 status
+}
+
+struct Request{
+    1:string type
+    2:string filename
+    3:string filepath # only used for write
 }
 
 service replicaServer {
@@ -27,6 +33,7 @@ service replicaServer {
     # For coordinator to call
     FileInfo get_version(1: string filename) # Called by coordinator to get version from a server
     list<FileInfo> get_all_files() # Called by a coordinator on a node to get a list of files on it
+    void node_write_file(1: string filename, 2:string filepath, 3:i32 version)
 
     # Called on Coordinator
     list<FileInfo> cord_list_files()
@@ -34,7 +41,7 @@ service replicaServer {
 
     # For Sending Data Around
     i32 get_file_size(1: string filename)
-    dataChunk request_data(1: string filename, 2:i32 chunkindex)
+    DataChunk request_data(1: string filename, 2:i32 chunkindex)
     # TODO: actual data moving
 
 }

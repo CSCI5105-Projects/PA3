@@ -17,7 +17,7 @@ sys.path.insert(0, glob.glob('../thrift/thrift-0.19.0/lib/py/build/lib*')[0])
 
 # Thrift Libraries
 from PA3 import replicaServer
-from PA3.ttypes import FileInfo, ContactInfo
+from PA3.ttypes import FileInfo, ContactInfo, DataChunk, Request
 
 from thrift.transport import TSocket, TTransport
 from thrift.protocol import TBinaryProtocol
@@ -100,8 +100,6 @@ class ReplicaServerHandler():
 
         return fileList
 
-
-
     def list_files(self):
         """Externally Called From Client"""
 
@@ -120,15 +118,39 @@ class ReplicaServerHandler():
         # Return List of Files
         return returnVal
 
-    def read_file(filename):
+    def get_version(self, filename):
+        """Externally called from coordinator, returns info about a file"""
+        for file in self.contained_files:
+            if file.name == filename:
+                return file
+
+    def read_file(self, filename):
         """Externally Called From Client"""
         None
 
-    def write_file(filename, filepath):
+    def write_file(self, filename, filepath):
         """Externally Called from Client"""
+        if self.role == 1:
+            request = Request("write", filename, filepath)
+            self.jobQueue.put(request)
+
+        
+
+        else:
+            transport = TSocket.TSocket(self.coordinatorContact.ip, self.coordinatorContact.port)
+            transport = TTransport.TBufferedTransport(transport)
+            protocol = TBinaryProtocol.TBinaryProtocol(transport)
+            client = replicaServer.Client(protocol) 
+
+            transport.open()
+
+            client.write_file(filename, filepath)
+
+            transport.close
+
         None
 
-    def confirm_operation():
+    def confirm_operation(self):
         """Externally Called From Client"""
         None
 

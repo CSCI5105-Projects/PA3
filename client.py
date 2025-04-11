@@ -40,11 +40,39 @@ def list_files(server_ip, server_port):
 
     transport.close()
 
-def read_file(server_ip, server_port):
-    None
+def read_file(server_ip, server_port, filename):
+    transport = TSocket.TSocket(server_ip, server_port)
+    transport = TTransport.TBufferedTransport(transport)
+    protocol = TBinaryProtocol.TBinaryProtocol(transport)
+    client = replicaServer.Client(protocol)
 
-def write_file(server_ip, server_port):
-    None
+    transport.open()
+
+    filepath = client.read_file(filename)
+
+    print(f"Pretend you're reading a file: {filename} at {filepath}")
+
+    print(f"Done reading file")
+
+    client.confirm_operation()
+
+    transport.close()
+
+def write_file(server_ip, server_port, filename, filepath):
+    transport = TSocket.TSocket(server_ip, server_port)
+    transport = TTransport.TBufferedTransport(transport)
+    protocol = TBinaryProtocol.TBinaryProtocol(transport)
+    client = replicaServer.Client(protocol)
+
+    transport.open()
+
+    print(f"Writing File: {filename} at path: {filepath}")
+
+    client.write_file(filename, filepath)
+
+    client.confirm_operation()
+
+    transport.close()
 
 def main():
     parser = argparse.ArgumentParser(description="Client for reading and writing")
@@ -52,6 +80,7 @@ def main():
     parser.add_argument("server_port", type=int, help="Server port")
     parser.add_argument("-l", "--list", action="store_true", help = "List all files and versions")
     parser.add_argument("-r", "--read", help = "Read a file with given filename")
+    parser.add_argument("-w", "--write" ,nargs=2, help="Write a file with given filename and filepath")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
 
     args = parser.parse_args()
@@ -60,6 +89,12 @@ def main():
 
     if args.list:
         list_files(args.server_ip, args.server_port)
+
+    elif args.read:
+        read_file(args.server_ip, args.server_port, args.read)
+
+    elif args.write:
+        write_file(args.server_ip, args.server_port, args.write[0], args.write[1])
 
 if __name__ == "__main__":
     main()

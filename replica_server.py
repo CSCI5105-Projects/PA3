@@ -62,9 +62,6 @@ class ReplicaServerHandler():
         if self.info == self.coordinatorContact:
             self.role = 1
 
-        print(self.coordinatorContact)
-        print(self.role)
-
     def setup_coordinator(self):
         print(f"Initializing Server as Coordinator")
         self.jobQueue = queue.Queue()
@@ -75,6 +72,34 @@ class ReplicaServerHandler():
 
     def cord_list_files(self):
         """Called onto Coordinator"""
+        fileList = self.contained_files
+        
+        for server in self.server_list:
+            if server == self.info:
+                None
+            else:
+                transport = TSocket.TSocket(server.ip, server.port)
+                transport = TTransport.TBufferedTransport(transport)
+                protocol = TBinaryProtocol.TBinaryProtocol(transport)
+                client = replicaServer.Client(protocol)
+
+                transport.open()
+
+                returnedFileList = client.get_all_files()
+
+                transport.close()
+
+                for returnFile in returnedFileList:
+                    
+                    for file in fileList:
+                        if returnFile.name == file.name:
+                            if returnFile.version > file.version:
+                                file.version = returnFile.version
+
+                    fileList.append(returnFile)
+
+        return fileList
+
 
 
     def list_files(self):
@@ -99,6 +124,10 @@ class ReplicaServerHandler():
         """Externally Called From Client"""
         None
 
+    def write_file(filename, filepath):
+        """Externally Called from Client"""
+        None
+
     def confirm_operation():
         """Externally Called From Client"""
         None
@@ -120,6 +149,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Replica Server in DFS Network")
     parser.add_argument("node_ip", type=str, help="ip for replica server")
     parser.add_argument("node_port", type=int, help="Port number for replica server")
+    parser.add_argument("storage_path", type=str, help="path to store data in")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
 
 

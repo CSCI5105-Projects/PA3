@@ -11,12 +11,17 @@ struct ContactInfo {
     2: i32 port
 }
 
+struct dataChunk{
+    1:list<byte> data
+    2:i32 status
+}
+
 service replicaServer {
 
     # For client to call
     list<FileInfo> list_files()
     string read_file(1:string filename)
-    #TODO void write_file(1: string filename)
+    void write_file(1:string filename, 2:string filepath)
     void confirm_operation() 
 
     # For coordinator to call
@@ -29,6 +34,7 @@ service replicaServer {
 
     # For Sending Data Around
     i32 get_file_size(1: string filename)
+    dataChunk request_data(1: string filename, 2:i32 chunkindex)
     # TODO: actual data moving
 
 }

@@ -36,12 +36,13 @@ service replicaServer {
     void node_write_file(1: string filename, 2:string filepath, 3:i32 version)
 
     # Called on Coordinator
+    string insert_job(1: Request request)
     list<FileInfo> cord_list_files()
 
 
     # For Sending Data Around
     i64 get_file_size(1: string filename)
-    DataChunk request_data(1: string filename, 2:i32 offest, 3:i32 size)
+    binary request_data(1: string filename, 2:i32 offest, 3:i32 size)
     # TODO: actual data moving
 
 }

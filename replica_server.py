@@ -43,10 +43,13 @@ class ReplicaServerHandler():
 
         self.import_compute_nodes()
 
-        print(self.get_file_size("beemoviescript.txt"))
+        #print(self.get_file_size("beemoviescript.txt"))
 
         if (self.role == 1):
             self.setup_coordinator()
+
+        else:
+            self.copy_file("beemoviescript.txt", "127.0.0.1", 9090)
 
 
     def import_compute_nodes(self):
@@ -125,6 +128,11 @@ class ReplicaServerHandler():
         # Return List of Files
         return returnVal
 
+    def insert_job(self, request):
+        """Called from server, inserts a job"""
+        #TODO: Finish this. Should be all the Mutex and stuff in here
+        self.jobQueue.put(request)
+
     def get_version(self, filename):
         """Externally called from coordinator, returns info about a file"""
         for file in self.contained_files:
@@ -133,30 +141,35 @@ class ReplicaServerHandler():
 
     def read_file(self, filename):
         """Externally Called From Client"""
-        None
+        request = Request("read", filename)
+
+        transport = TSocket.TSocket(self.coordinatorContact.ip, self.coordinatorContact.port)
+        transport = TTransport.TBufferedTransport(transport)
+        protocol = TBinaryProtocol.TBinaryProtocol(transport)
+        client = replicaServer.Client(protocol) 
+
+        transport.open()
+
+        path = client.insert_job(request)
+
+        transport.close
+
+        return path
 
     def write_file(self, filename, filepath):
         """Externally Called from Client"""
-        """TODO: Unfinished"""
-        if self.role == 1:
-            request = Request("write", filename, filepath)
-            self.jobQueue.put(request)
+        request = Request("write", filename, filepath)
 
-        
+        transport = TSocket.TSocket(self.coordinatorContact.ip, self.coordinatorContact.port)
+        transport = TTransport.TBufferedTransport(transport)
+        protocol = TBinaryProtocol.TBinaryProtocol(transport)
+        client = replicaServer.Client(protocol) 
 
-        else:
-            transport = TSocket.TSocket(self.coordinatorContact.ip, self.coordinatorContact.port)
-            transport = TTransport.TBufferedTransport(transport)
-            protocol = TBinaryProtocol.TBinaryProtocol(transport)
-            client = replicaServer.Client(protocol) 
+        transport.open()
 
-            transport.open()
+        client.insert_job(request)
 
-            client.write_file(filename, filepath)
-
-            transport.close
-
-        None
+        transport.close
 
     def confirm_operation(self):
         """Externally Called From Client"""
@@ -166,7 +179,32 @@ class ReplicaServerHandler():
         """Externally Called From Another Server (not nessecarily coordinator)"""
         path = self.storage_path + "/" + filename
         return os.path.getsize(path)
+    
+    def request_data(self, filename, offset, size):
+        """Externally Called from Another Server (not nessecarily coordinator)"""
+        path = self.storage_path + "/" + filename
+        with open(path, 'rb') as file:
+            file.seek(offset)
+            return file.read(size)
+        
+    def copy_file(self, filename, ip, port):
+        """Copies a given file from a another given node"""
+        transport = TSocket.TSocket(ip, port)
+        transport = TTransport.TBufferedTransport(transport)
+        protocol = TBinaryProtocol.TBinaryProtocol(transport)
+        client = replicaServer.Client(protocol)
 
+        transport.open()
+
+        fileSize = client.get_file_size(filename)
+        chunkSize = 2048
+        localPath = self.storage_path + "/" + filename
+        with open(localPath, "wb") as file:
+            for offset in range (0, fileSize, chunkSize):
+                chunk = client.request_data(filename, offset, chunkSize)
+                file.write(chunk)
+
+        transport.close()
 
 def run_replica_server(node_ip, node_port, storage_path):
     handler = ReplicaServerHandler(node_ip, node_port, storage_path)

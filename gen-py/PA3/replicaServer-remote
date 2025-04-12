@@ -31,9 +31,10 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  FileInfo get_version(string filename)')
     print('   get_all_files()')
     print('  void node_write_file(string filename, string filepath, i32 version)')
+    print('  string insert_job(Request request)')
     print('   cord_list_files()')
     print('  i64 get_file_size(string filename)')
-    print('  DataChunk request_data(string filename, i32 offest, i32 size)')
+    print('  string request_data(string filename, i32 offest, i32 size)')
     print('')
     sys.exit(0)
 
@@ -154,6 +155,12 @@ elif cmd == 'node_write_file':
         print('node_write_file requires 3 args')
         sys.exit(1)
     pp.pprint(client.node_write_file(args[0], args[1], eval(args[2]),))
+
+elif cmd == 'insert_job':
+    if len(args) != 1:
+        print('insert_job requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.insert_job(eval(args[0]),))
 
 elif cmd == 'cord_list_files':
     if len(args) != 0:

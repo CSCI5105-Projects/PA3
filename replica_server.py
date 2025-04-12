@@ -189,6 +189,7 @@ class ReplicaServerHandler():
         
     def copy_file(self, filename, ip, port):
         """Copies a given file from a another given node"""
+        #Note: Used chatgpt to figure out how the thrift binary and binary read/write works (there is no thrift binary documentation)
         transport = TSocket.TSocket(ip, port)
         transport = TTransport.TBufferedTransport(transport)
         protocol = TBinaryProtocol.TBinaryProtocol(transport)

@@ -40,8 +40,8 @@ service replicaServer {
 
 
     # For Sending Data Around
-    i32 get_file_size(1: string filename)
-    DataChunk request_data(1: string filename, 2:i32 chunkindex)
+    i64 get_file_size(1: string filename)
+    DataChunk request_data(1: string filename, 2:i32 offest, 3:i32 size)
     # TODO: actual data moving
 
 }

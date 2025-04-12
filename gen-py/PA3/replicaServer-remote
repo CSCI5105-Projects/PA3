@@ -30,9 +30,10 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  void confirm_operation()')
     print('  FileInfo get_version(string filename)')
     print('   get_all_files()')
+    print('  void node_write_file(string filename, string filepath, i32 version)')
     print('   cord_list_files()')
-    print('  i32 get_file_size(string filename)')
-    print('  DataChunk request_data(string filename, i32 chunkindex)')
+    print('  i64 get_file_size(string filename)')
+    print('  DataChunk request_data(string filename, i32 offest, i32 size)')
     print('')
     sys.exit(0)
 
@@ -148,6 +149,12 @@ elif cmd == 'get_all_files':
         sys.exit(1)
     pp.pprint(client.get_all_files())
 
+elif cmd == 'node_write_file':
+    if len(args) != 3:
+        print('node_write_file requires 3 args')
+        sys.exit(1)
+    pp.pprint(client.node_write_file(args[0], args[1], eval(args[2]),))
+
 elif cmd == 'cord_list_files':
     if len(args) != 0:
         print('cord_list_files requires 0 args')
@@ -161,10 +168,10 @@ elif cmd == 'get_file_size':
     pp.pprint(client.get_file_size(args[0],))
 
 elif cmd == 'request_data':
-    if len(args) != 2:
-        print('request_data requires 2 args')
+    if len(args) != 3:
+        print('request_data requires 3 args')
         sys.exit(1)
-    pp.pprint(client.request_data(args[0], eval(args[1]),))
+    pp.pprint(client.request_data(args[0], eval(args[1]), eval(args[2]),))
 
 else:
     print('Unrecognized method %s' % cmd)

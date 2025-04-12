@@ -25,20 +25,25 @@ from thrift.server import TServer
 
 # Our Imported Libraries
 import queue
+import os
 
 DEBUG = 1
 
 class ReplicaServerHandler():
-    def __init__(self, node_ip, node_port):
+    def __init__(self, node_ip, node_port, storage_path):
         self.info = ContactInfo(node_ip, node_port)
+        self.storage_path = storage_path
         self.contained_files = []
         self.server_list = []
         self.NR = 0
         self.NW = 0
         self.coordinatorContact = None 
         self.role = None
+        
 
         self.import_compute_nodes()
+
+        print(self.get_file_size("beemoviescript.txt"))
 
         if (self.role == 1):
             self.setup_coordinator()
@@ -61,6 +66,8 @@ class ReplicaServerHandler():
 
         if self.info == self.coordinatorContact:
             self.role = 1
+
+        file.close()
 
     def setup_coordinator(self):
         print(f"Initializing Server as Coordinator")
@@ -130,6 +137,7 @@ class ReplicaServerHandler():
 
     def write_file(self, filename, filepath):
         """Externally Called from Client"""
+        """TODO: Unfinished"""
         if self.role == 1:
             request = Request("write", filename, filepath)
             self.jobQueue.put(request)
@@ -154,9 +162,14 @@ class ReplicaServerHandler():
         """Externally Called From Client"""
         None
 
+    def get_file_size(self, filename):
+        """Externally Called From Another Server (not nessecarily coordinator)"""
+        path = self.storage_path + "/" + filename
+        return os.path.getsize(path)
 
-def run_replica_server(node_ip, node_port):
-    handler = ReplicaServerHandler(node_ip, node_port)
+
+def run_replica_server(node_ip, node_port, storage_path):
+    handler = ReplicaServerHandler(node_ip, node_port, storage_path)
     processor = replicaServer.Processor(handler)
     transport = TSocket.TServerSocket(host='0.0.0.0', port=node_port)
     tfactory = TTransport.TBufferedTransportFactory()
@@ -178,4 +191,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.debug:
         DEBUG = 1
-    run_replica_server(args.node_ip, args.node_port)        
+    run_replica_server(args.node_ip, args.node_port, args.storage_path)        

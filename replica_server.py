@@ -50,6 +50,7 @@ class ReplicaServerHandler():
 
         else:
             self.copy_file("beemoviescript.txt", "127.0.0.1", 9090)
+            self.copy_file("chicken_jockey.jpg", "127.0.0.1", 9090)
 
 
     def import_compute_nodes(self):

@@ -11,15 +11,11 @@ struct ContactInfo {
     2: i32 port
 }
 
-struct DataChunk{
-    1:binary data
-    2:i32 status
-}
+
 
 struct Request{
     1:string type
     2:string filename
-    3:string filepath # only used for write
 }
 
 struct Response {

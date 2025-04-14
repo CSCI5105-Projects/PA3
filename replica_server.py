@@ -108,6 +108,8 @@ class ReplicaServerHandler():
 
                 transport.close()
 
+                #TODO: This way sucks, but does work, maybe find another way
+
                 for returnFile in returnedFileList:
                     
                     for file in fileList:
@@ -205,7 +207,6 @@ class ReplicaServerHandler():
             response = self.cord_write_file(self.currentTask.filename)
             self.writePending = 1
 
-
         return response
 
     def get_version(self, filename):
@@ -217,8 +218,7 @@ class ReplicaServerHandler():
         else:
             returnVal = 0
         
-        return returnVal
-            
+        return returnVal            
 
     def read_file(self, filename):
         """Externally Called From Client"""
@@ -243,10 +243,13 @@ class ReplicaServerHandler():
                 print(f"repsonse.version: {response.version}")
 
                 if file.version < response.version:
+                    # has the file, but not most recent version
                     self.copy_file(response.version, filename, response.contact.ip, response.contact.port)
                 else:
+                    # Has Most Recent Version Already
                     break
         else:
+            # Does not have any version of the file
             self.copy_file(response.version, filename, response.contact.ip, response.contact.port)
         
         path = self.storage_path + "/" + filename
@@ -254,7 +257,7 @@ class ReplicaServerHandler():
 
     def write_file(self, filename, filepath):
         """Externally Called from Client"""
-        request = Request("write", filename, filepath)
+        request = Request("write", filename)
 
         transport = TSocket.TSocket(self.coordinatorContact.ip, self.coordinatorContact.port)
         transport = TTransport.TBufferedTransport(transport)
@@ -273,7 +276,7 @@ class ReplicaServerHandler():
                 file.version = response.version + 1
                 break
         else:
-            self.contained_files.append(FileInfo(filename, 1))
+            self.contained_files.append(FileInfo(filename, response.version+1))
 
         if DEBUG > 0:
             print(f"Write Operation: Copying Supplied File {filename} to internal storage")

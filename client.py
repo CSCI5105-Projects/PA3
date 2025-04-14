@@ -87,6 +87,8 @@ def main():
     if args.debug:
         DEBUG = 1
 
+    #TODO: Figure out a way to get the filename from the filepath for write operations then you only need one entry
+
     if args.list:
         list_files(args.server_ip, args.server_port)
 

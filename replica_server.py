@@ -17,7 +17,7 @@ sys.path.insert(0, glob.glob('../thrift/thrift-0.19.0/lib/py/build/lib*')[0])
 
 # Thrift Libraries
 from PA3 import replicaServer
-from PA3.ttypes import FileInfo, ContactInfo, DataChunk, Request, Response
+from PA3.ttypes import FileInfo, ContactInfo, Request, Response
 
 from thrift.transport import TSocket, TTransport
 from thrift.protocol import TBinaryProtocol

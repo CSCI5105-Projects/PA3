@@ -71,6 +71,19 @@ class Iface(object):
         """
         pass
 
+    def finish_write(self, version, filename, ip, port, source_ip, source_port):
+        """
+        Parameters:
+         - version
+         - filename
+         - ip
+         - port
+         - source_ip
+         - source_port
+
+        """
+        pass
+
     def cord_list_files(self):
         pass
 
@@ -88,6 +101,17 @@ class Iface(object):
          - filename
          - offest
          - size
+
+        """
+        pass
+
+    def copy_file(self, version, filename, ip, port):
+        """
+        Parameters:
+         - version
+         - filename
+         - ip
+         - port
 
         """
         pass
@@ -338,6 +362,46 @@ class Client(Iface):
             return result.success
         raise TApplicationException(TApplicationException.MISSING_RESULT, "insert_job failed: unknown result")
 
+    def finish_write(self, version, filename, ip, port, source_ip, source_port):
+        """
+        Parameters:
+         - version
+         - filename
+         - ip
+         - port
+         - source_ip
+         - source_port
+
+        """
+        self.send_finish_write(version, filename, ip, port, source_ip, source_port)
+        self.recv_finish_write()
+
+    def send_finish_write(self, version, filename, ip, port, source_ip, source_port):
+        self._oprot.writeMessageBegin('finish_write', TMessageType.CALL, self._seqid)
+        args = finish_write_args()
+        args.version = version
+        args.filename = filename
+        args.ip = ip
+        args.port = port
+        args.source_ip = source_ip
+        args.source_port = source_port
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_finish_write(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = finish_write_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        return
+
     def cord_list_files(self):
         self.send_cord_list_files()
         return self.recv_cord_list_files()
@@ -432,6 +496,42 @@ class Client(Iface):
             return result.success
         raise TApplicationException(TApplicationException.MISSING_RESULT, "request_data failed: unknown result")
 
+    def copy_file(self, version, filename, ip, port):
+        """
+        Parameters:
+         - version
+         - filename
+         - ip
+         - port
+
+        """
+        self.send_copy_file(version, filename, ip, port)
+        self.recv_copy_file()
+
+    def send_copy_file(self, version, filename, ip, port):
+        self._oprot.writeMessageBegin('copy_file', TMessageType.CALL, self._seqid)
+        args = copy_file_args()
+        args.version = version
+        args.filename = filename
+        args.ip = ip
+        args.port = port
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_copy_file(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = copy_file_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        return
+
 
 class Processor(Iface, TProcessor):
     def __init__(self, handler):
@@ -445,9 +545,11 @@ class Processor(Iface, TProcessor):
         self._processMap["get_all_files"] = Processor.process_get_all_files
         self._processMap["node_write_file"] = Processor.process_node_write_file
         self._processMap["insert_job"] = Processor.process_insert_job
+        self._processMap["finish_write"] = Processor.process_finish_write
         self._processMap["cord_list_files"] = Processor.process_cord_list_files
         self._processMap["get_file_size"] = Processor.process_get_file_size
         self._processMap["request_data"] = Processor.process_request_data
+        self._processMap["copy_file"] = Processor.process_copy_file
         self._on_message_begin = None
 
     def on_message_begin(self, func):
@@ -654,6 +756,29 @@ class Processor(Iface, TProcessor):
         oprot.writeMessageEnd()
         oprot.trans.flush()
 
+    def process_finish_write(self, seqid, iprot, oprot):
+        args = finish_write_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = finish_write_result()
+        try:
+            self._handler.finish_write(args.version, args.filename, args.ip, args.port, args.source_ip, args.source_port)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("finish_write", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
     def process_cord_list_files(self, seqid, iprot, oprot):
         args = cord_list_files_args()
         args.read(iprot)
@@ -719,6 +844,29 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
         oprot.writeMessageBegin("request_data", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_copy_file(self, seqid, iprot, oprot):
+        args = copy_file_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = copy_file_result()
+        try:
+            self._handler.copy_file(args.version, args.filename, args.ip, args.port)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("copy_file", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -1248,9 +1396,8 @@ class get_version_result(object):
             if ftype == TType.STOP:
                 break
             if fid == 0:
-                if ftype == TType.STRUCT:
-                    self.success = FileInfo()
-                    self.success.read(iprot)
+                if ftype == TType.I32:
+                    self.success = iprot.readI32()
                 else:
                     iprot.skip(ftype)
             else:
@@ -1264,8 +1411,8 @@ class get_version_result(object):
             return
         oprot.writeStructBegin('get_version_result')
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRUCT, 0)
-            self.success.write(oprot)
+            oprot.writeFieldBegin('success', TType.I32, 0)
+            oprot.writeI32(self.success)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1285,7 +1432,7 @@ class get_version_result(object):
         return not (self == other)
 all_structs.append(get_version_result)
 get_version_result.thrift_spec = (
-    (0, TType.STRUCT, 'success', [FileInfo, None], None, ),  # 0
+    (0, TType.I32, 'success', None, None, ),  # 0
 )
 
 
@@ -1615,8 +1762,9 @@ class insert_job_result(object):
             if ftype == TType.STOP:
                 break
             if fid == 0:
-                if ftype == TType.STRING:
-                    self.success = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                if ftype == TType.STRUCT:
+                    self.success = Response()
+                    self.success.read(iprot)
                 else:
                     iprot.skip(ftype)
             else:
@@ -1630,8 +1778,8 @@ class insert_job_result(object):
             return
         oprot.writeStructBegin('insert_job_result')
         if self.success is not None:
-            oprot.writeFieldBegin('success', TType.STRING, 0)
-            oprot.writeString(self.success.encode('utf-8') if sys.version_info[0] == 2 else self.success)
+            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            self.success.write(oprot)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -1651,7 +1799,172 @@ class insert_job_result(object):
         return not (self == other)
 all_structs.append(insert_job_result)
 insert_job_result.thrift_spec = (
-    (0, TType.STRING, 'success', 'UTF8', None, ),  # 0
+    (0, TType.STRUCT, 'success', [Response, None], None, ),  # 0
+)
+
+
+class finish_write_args(object):
+    """
+    Attributes:
+     - version
+     - filename
+     - ip
+     - port
+     - source_ip
+     - source_port
+
+    """
+
+
+    def __init__(self, version=None, filename=None, ip=None, port=None, source_ip=None, source_port=None,):
+        self.version = version
+        self.filename = filename
+        self.ip = ip
+        self.port = port
+        self.source_ip = source_ip
+        self.source_port = source_port
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.version = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.STRING:
+                    self.filename = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.STRING:
+                    self.ip = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.I32:
+                    self.port = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 5:
+                if ftype == TType.STRING:
+                    self.source_ip = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 6:
+                if ftype == TType.I32:
+                    self.source_port = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('finish_write_args')
+        if self.version is not None:
+            oprot.writeFieldBegin('version', TType.I32, 1)
+            oprot.writeI32(self.version)
+            oprot.writeFieldEnd()
+        if self.filename is not None:
+            oprot.writeFieldBegin('filename', TType.STRING, 2)
+            oprot.writeString(self.filename.encode('utf-8') if sys.version_info[0] == 2 else self.filename)
+            oprot.writeFieldEnd()
+        if self.ip is not None:
+            oprot.writeFieldBegin('ip', TType.STRING, 3)
+            oprot.writeString(self.ip.encode('utf-8') if sys.version_info[0] == 2 else self.ip)
+            oprot.writeFieldEnd()
+        if self.port is not None:
+            oprot.writeFieldBegin('port', TType.I32, 4)
+            oprot.writeI32(self.port)
+            oprot.writeFieldEnd()
+        if self.source_ip is not None:
+            oprot.writeFieldBegin('source_ip', TType.STRING, 5)
+            oprot.writeString(self.source_ip.encode('utf-8') if sys.version_info[0] == 2 else self.source_ip)
+            oprot.writeFieldEnd()
+        if self.source_port is not None:
+            oprot.writeFieldBegin('source_port', TType.I32, 6)
+            oprot.writeI32(self.source_port)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(finish_write_args)
+finish_write_args.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'version', None, None, ),  # 1
+    (2, TType.STRING, 'filename', 'UTF8', None, ),  # 2
+    (3, TType.STRING, 'ip', 'UTF8', None, ),  # 3
+    (4, TType.I32, 'port', None, None, ),  # 4
+    (5, TType.STRING, 'source_ip', 'UTF8', None, ),  # 5
+    (6, TType.I32, 'source_port', None, None, ),  # 6
+)
+
+
+class finish_write_result(object):
+
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('finish_write_result')
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(finish_write_result)
+finish_write_result.thrift_spec = (
 )
 
 
@@ -2035,6 +2348,147 @@ class request_data_result(object):
 all_structs.append(request_data_result)
 request_data_result.thrift_spec = (
     (0, TType.STRING, 'success', 'BINARY', None, ),  # 0
+)
+
+
+class copy_file_args(object):
+    """
+    Attributes:
+     - version
+     - filename
+     - ip
+     - port
+
+    """
+
+
+    def __init__(self, version=None, filename=None, ip=None, port=None,):
+        self.version = version
+        self.filename = filename
+        self.ip = ip
+        self.port = port
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I32:
+                    self.version = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.STRING:
+                    self.filename = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.STRING:
+                    self.ip = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.I32:
+                    self.port = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('copy_file_args')
+        if self.version is not None:
+            oprot.writeFieldBegin('version', TType.I32, 1)
+            oprot.writeI32(self.version)
+            oprot.writeFieldEnd()
+        if self.filename is not None:
+            oprot.writeFieldBegin('filename', TType.STRING, 2)
+            oprot.writeString(self.filename.encode('utf-8') if sys.version_info[0] == 2 else self.filename)
+            oprot.writeFieldEnd()
+        if self.ip is not None:
+            oprot.writeFieldBegin('ip', TType.STRING, 3)
+            oprot.writeString(self.ip.encode('utf-8') if sys.version_info[0] == 2 else self.ip)
+            oprot.writeFieldEnd()
+        if self.port is not None:
+            oprot.writeFieldBegin('port', TType.I32, 4)
+            oprot.writeI32(self.port)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(copy_file_args)
+copy_file_args.thrift_spec = (
+    None,  # 0
+    (1, TType.I32, 'version', None, None, ),  # 1
+    (2, TType.STRING, 'filename', 'UTF8', None, ),  # 2
+    (3, TType.STRING, 'ip', 'UTF8', None, ),  # 3
+    (4, TType.I32, 'port', None, None, ),  # 4
+)
+
+
+class copy_file_result(object):
+
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('copy_file_result')
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(copy_file_result)
+copy_file_result.thrift_spec = (
 )
 fix_spec(all_structs)
 del all_structs

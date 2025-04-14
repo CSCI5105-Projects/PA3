@@ -17,7 +17,7 @@ sys.path.insert(0, glob.glob('../thrift/thrift-0.19.0/lib/py/build/lib*')[0])
 
 # Thrift Libraries
 from PA3 import replicaServer
-from PA3.ttypes import FileInfo, ContactInfo, DataChunk, Request
+from PA3.ttypes import FileInfo, ContactInfo, DataChunk, Request, Response
 
 from thrift.transport import TSocket, TTransport
 from thrift.protocol import TBinaryProtocol
@@ -26,6 +26,8 @@ from thrift.server import TServer
 # Our Imported Libraries
 import queue
 import os
+import random
+import shutil
 
 DEBUG = 1
 
@@ -48,9 +50,9 @@ class ReplicaServerHandler():
         if (self.role == 1):
             self.setup_coordinator()
 
-        else:
-            self.copy_file("beemoviescript.txt", "127.0.0.1", 9090)
-            self.copy_file("chicken_jockey.jpg", "127.0.0.1", 9090)
+        # else:
+        #     self.copy_file("beemoviescript.txt", "127.0.0.1", 9090)
+        #     self.copy_file("chicken_jockey.jpg", "127.0.0.1", 9090)
 
 
     def import_compute_nodes(self):
@@ -58,6 +60,8 @@ class ReplicaServerHandler():
 
         with open("compute_nodes.txt") as file:
             self.NR, self.NW = file.readline().strip().split(",")
+            self.NR = int(self.NR)
+            self.NW = int(self.NW)
 
             for row in file:
                 ip, port, role = row.strip().split(",")
@@ -76,6 +80,9 @@ class ReplicaServerHandler():
     def setup_coordinator(self):
         print(f"Initializing Server as Coordinator")
         self.jobQueue = queue.Queue()
+        self.chosenServers = None
+        self.currentTask = None
+        self.writePending = 0
 
     def get_all_files(self):
         """Called by coordinator onto node to get all files"""
@@ -83,7 +90,8 @@ class ReplicaServerHandler():
 
     def cord_list_files(self):
         """Called onto Coordinator"""
-        fileList = self.contained_files
+        fileList = self.contained_files[:]
+        print(self.contained_files)
         
         for server in self.server_list:
             if server == self.info:
@@ -106,8 +114,9 @@ class ReplicaServerHandler():
                         if returnFile.name == file.name:
                             if returnFile.version > file.version:
                                 file.version = returnFile.version
-
-                    fileList.append(returnFile)
+                            break
+                    else:
+                        fileList.append(returnFile)
 
         return fileList
 
@@ -129,16 +138,87 @@ class ReplicaServerHandler():
         # Return List of Files
         return returnVal
 
+    def cord_read_file(self, filename):
+        """Internal Coordinator Function"""
+        self.chosenServers = random.sample(self.server_list, self.NR)
+
+        returnVal = Response(0, None)
+
+        for server in self.chosenServers:
+            transport = TSocket.TSocket(server.ip, server.port)
+            transport = TTransport.TBufferedTransport(transport)
+            protocol = TBinaryProtocol.TBinaryProtocol(transport)
+            client = replicaServer.Client(protocol) 
+
+            transport.open()
+
+            version = client.get_version(filename)
+            if version > returnVal.version:
+                returnVal.version = version
+                returnVal.contact = server
+
+            transport.close()
+
+        self.chosenServers = None
+
+        return returnVal
+
+    def cord_write_file(self, filename):
+        """Internal Coordinator Function"""
+        self.chosenServers = random.sample(self.server_list, self.NW)
+
+        returnVal = Response(0, None)
+
+        for server in self.chosenServers:
+            transport = TSocket.TSocket(server.ip, server.port)
+            transport = TTransport.TBufferedTransport(transport)
+            protocol = TBinaryProtocol.TBinaryProtocol(transport)
+            client = replicaServer.Client(protocol) 
+
+            transport.open()
+
+            version = client.get_version(filename)
+            if version > returnVal.version:
+                returnVal.version = version
+                returnVal.contact = server
+
+            transport.close()
+
+
+
+        return returnVal
+
     def insert_job(self, request):
         """Called from server, inserts a job"""
         #TODO: Finish this. Should be all the Mutex and stuff in here
+        if DEBUG > 0:
+            print(f"Coordinator: Receiving Job of Type: {request.type}, adding to queue")
         self.jobQueue.put(request)
+
+        if DEBUG > 0:
+            print(f"Coordinator: Ready to Run Job")
+        self.currentTask = self.jobQueue.get()
+
+        if (self.currentTask.type == "read"):
+            response = self.cord_read_file(self.currentTask.filename)
+        elif (self.currentTask.type == "write"):
+            response = self.cord_write_file(self.currentTask.filename)
+            self.writePending = 1
+
+
+        return response
 
     def get_version(self, filename):
         """Externally called from coordinator, returns info about a file"""
         for file in self.contained_files:
             if file.name == filename:
-                return file
+                returnVal = file.version
+                break
+        else:
+            returnVal = 0
+        
+        return returnVal
+            
 
     def read_file(self, filename):
         """Externally Called From Client"""
@@ -150,11 +230,26 @@ class ReplicaServerHandler():
         client = replicaServer.Client(protocol) 
 
         transport.open()
+        if DEBUG > 0:
+            print(f"Read Operation: Inserting Job")
+        response = client.insert_job(request)
 
-        path = client.insert_job(request)
+        transport.close()
+        if DEBUG > 0:
+            print(f"Read Operation: Copying File")
+        for file in self.contained_files:
+            if file.name == filename:
+                print(f"file.version: {file.version}")
+                print(f"repsonse.version: {response.version}")
 
-        transport.close
-
+                if file.version < response.version:
+                    self.copy_file(response.version, filename, response.contact.ip, response.contact.port)
+                else:
+                    break
+        else:
+            self.copy_file(response.version, filename, response.contact.ip, response.contact.port)
+        
+        path = self.storage_path + "/" + filename
         return path
 
     def write_file(self, filename, filepath):
@@ -168,9 +263,50 @@ class ReplicaServerHandler():
 
         transport.open()
 
-        client.insert_job(request)
+        if DEBUG > 0:
+            print(f"Write Operation: Inserting Job")
+        response = client.insert_job(request)
 
-        transport.close
+        # Increment stored version by 1
+        for file in self.contained_files:
+            if file.name == filename:
+                file.version = response.version + 1
+                break
+        else:
+            self.contained_files.append(FileInfo(filename, 1))
+
+        if DEBUG > 0:
+            print(f"Write Operation: Copying Supplied File {filename} to internal storage")
+        destination = self.storage_path + "/"
+        shutil.copy(filepath, destination)
+
+        if DEBUG > 0:
+            print(f"Write Operation: Informing Coordinator Write has finished")
+        client.finish_write(response.version+1, filename, self.info.ip, self.info.port, self.info.ip, self.info.port)
+
+        transport.close()
+
+        return
+
+    def finish_write(self, version, filename, ip, port, source_ip, source_port):
+
+        for server in self.chosenServers:
+            if source_ip == server.ip and source_port == server.port:
+                continue
+
+            transport = TSocket.TSocket(server.ip, server.port)
+            transport = TTransport.TBufferedTransport(transport)
+            protocol = TBinaryProtocol.TBinaryProtocol(transport)
+            client = replicaServer.Client(protocol)
+
+            transport.open()
+
+            client.copy_file(version, filename, ip, port)
+
+            transport.close()
+
+        self.chosenServers = None
+        self.writePending = 0
 
     def confirm_operation(self):
         """Externally Called From Client"""
@@ -188,7 +324,7 @@ class ReplicaServerHandler():
             file.seek(offset)
             return file.read(size)
         
-    def copy_file(self, filename, ip, port):
+    def copy_file(self, version, filename, ip, port):
         """Copies a given file from a another given node"""
         #Note: Used chatgpt to figure out how the thrift binary and binary read/write works (there is no thrift binary documentation)
         transport = TSocket.TSocket(ip, port)
@@ -207,6 +343,15 @@ class ReplicaServerHandler():
                 file.write(chunk)
 
         transport.close()
+
+        # Updates Stored File Information
+        for file in self.contained_files:
+            if file.name == filename:
+                file.version = version
+                return
+        
+        self.contained_files.append(FileInfo(filename, version))
+        return
 
 def run_replica_server(node_ip, node_port, storage_path):
     handler = ReplicaServerHandler(node_ip, node_port, storage_path)

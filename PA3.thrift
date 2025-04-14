@@ -22,6 +22,11 @@ struct Request{
     3:string filepath # only used for write
 }
 
+struct Response {
+    1:i32 version
+    2:ContactInfo contact
+}
+
 service replicaServer {
 
     # For client to call
@@ -31,18 +36,19 @@ service replicaServer {
     void confirm_operation() 
 
     # For coordinator to call
-    FileInfo get_version(1: string filename) # Called by coordinator to get version from a server
+    i32 get_version(1: string filename) # Called by coordinator to get version from a server
     list<FileInfo> get_all_files() # Called by a coordinator on a node to get a list of files on it
     void node_write_file(1: string filename, 2:string filepath, 3:i32 version)
 
     # Called on Coordinator
-    string insert_job(1: Request request)
+    Response insert_job(1: Request request)
+    void finish_write(1:i32 version, 2:string filename, 3:string ip, 4:i32 port, 5:string source_ip, 6:i32 source_port)
     list<FileInfo> cord_list_files()
 
 
     # For Sending Data Around
     i64 get_file_size(1: string filename)
     binary request_data(1: string filename, 2:i32 offest, 3:i32 size)
-    # TODO: actual data moving
+    void copy_file(1:i32 version, 2:string filename, 3:string ip, 4:i32 port)
 
 }

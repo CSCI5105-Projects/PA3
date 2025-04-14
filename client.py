@@ -54,7 +54,7 @@ def read_file(server_ip, server_port, filename):
 
     print(f"Done reading file")
 
-    client.confirm_operation()
+    #client.confirm_operation()
 
     transport.close()
 
@@ -70,7 +70,7 @@ def write_file(server_ip, server_port, filename, filepath):
 
     client.write_file(filename, filepath)
 
-    client.confirm_operation()
+    #client.confirm_operation()
 
     transport.close()
 

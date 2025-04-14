@@ -33,6 +33,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  void node_write_file(string filename, string filepath, i32 version)')
     print('  Response insert_job(Request request)')
     print('  void finish_write(i32 version, string filename, string ip, i32 port, string source_ip, i32 source_port)')
+    print('  void finish_read()')
     print('   cord_list_files()')
     print('  i64 get_file_size(string filename)')
     print('  string request_data(string filename, i32 offest, i32 size)')
@@ -169,6 +170,12 @@ elif cmd == 'finish_write':
         print('finish_write requires 6 args')
         sys.exit(1)
     pp.pprint(client.finish_write(eval(args[0]), args[1], args[2], eval(args[3]), args[4], eval(args[5]),))
+
+elif cmd == 'finish_read':
+    if len(args) != 0:
+        print('finish_read requires 0 args')
+        sys.exit(1)
+    pp.pprint(client.finish_read())
 
 elif cmd == 'cord_list_files':
     if len(args) != 0:

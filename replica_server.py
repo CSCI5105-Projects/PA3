@@ -84,6 +84,8 @@ class ReplicaServerHandler():
         self.currentTask = None
         self.writePending = 0
 
+        #TODO: Andrew Suggest using threads
+
     def get_all_files(self):
         """Called by coordinator onto node to get all files"""
         return self.contained_files
@@ -161,8 +163,6 @@ class ReplicaServerHandler():
 
             transport.close()
 
-        self.chosenServers = None
-
         return returnVal
 
     def cord_write_file(self, filename):
@@ -203,6 +203,7 @@ class ReplicaServerHandler():
 
         if (self.currentTask.type == "read"):
             response = self.cord_read_file(self.currentTask.filename)
+            self.readPending = 1
         elif (self.currentTask.type == "write"):
             response = self.cord_write_file(self.currentTask.filename)
             self.writePending = 1
@@ -234,7 +235,7 @@ class ReplicaServerHandler():
             print(f"Read Operation: Inserting Job")
         response = client.insert_job(request)
 
-        transport.close()
+        
         if DEBUG > 0:
             print(f"Read Operation: Copying File")
         for file in self.contained_files:
@@ -252,6 +253,9 @@ class ReplicaServerHandler():
             # Does not have any version of the file
             self.copy_file(response.version, filename, response.contact.ip, response.contact.port)
         
+        client.finish_read()
+
+        transport.close()
         path = self.storage_path + "/" + filename
         return path
 
@@ -310,6 +314,11 @@ class ReplicaServerHandler():
 
         self.chosenServers = None
         self.writePending = 0
+
+    def finish_read(self):
+        self.chosenServers = None
+        self.readPending = 0
+
 
     def confirm_operation(self):
         """Externally Called From Client"""

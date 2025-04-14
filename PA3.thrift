@@ -39,6 +39,7 @@ service replicaServer {
     # Called on Coordinator
     Response insert_job(1: Request request)
     void finish_write(1:i32 version, 2:string filename, 3:string ip, 4:i32 port, 5:string source_ip, 6:i32 source_port)
+    void finish_read()
     list<FileInfo> cord_list_files()
 
 

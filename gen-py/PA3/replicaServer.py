@@ -84,6 +84,9 @@ class Iface(object):
         """
         pass
 
+    def finish_read(self):
+        pass
+
     def cord_list_files(self):
         pass
 
@@ -402,6 +405,30 @@ class Client(Iface):
         iprot.readMessageEnd()
         return
 
+    def finish_read(self):
+        self.send_finish_read()
+        self.recv_finish_read()
+
+    def send_finish_read(self):
+        self._oprot.writeMessageBegin('finish_read', TMessageType.CALL, self._seqid)
+        args = finish_read_args()
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_finish_read(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = finish_read_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        return
+
     def cord_list_files(self):
         self.send_cord_list_files()
         return self.recv_cord_list_files()
@@ -546,6 +573,7 @@ class Processor(Iface, TProcessor):
         self._processMap["node_write_file"] = Processor.process_node_write_file
         self._processMap["insert_job"] = Processor.process_insert_job
         self._processMap["finish_write"] = Processor.process_finish_write
+        self._processMap["finish_read"] = Processor.process_finish_read
         self._processMap["cord_list_files"] = Processor.process_cord_list_files
         self._processMap["get_file_size"] = Processor.process_get_file_size
         self._processMap["request_data"] = Processor.process_request_data
@@ -775,6 +803,29 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
         oprot.writeMessageBegin("finish_write", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_finish_read(self, seqid, iprot, oprot):
+        args = finish_read_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = finish_read_result()
+        try:
+            self._handler.finish_read()
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("finish_read", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -1965,6 +2016,92 @@ class finish_write_result(object):
         return not (self == other)
 all_structs.append(finish_write_result)
 finish_write_result.thrift_spec = (
+)
+
+
+class finish_read_args(object):
+
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('finish_read_args')
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(finish_read_args)
+finish_read_args.thrift_spec = (
+)
+
+
+class finish_read_result(object):
+
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('finish_read_result')
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(finish_read_result)
+finish_read_result.thrift_spec = (
 )
 
 

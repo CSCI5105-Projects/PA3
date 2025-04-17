@@ -9,72 +9,75 @@ Command line:
 python3 client.py <server_ip> <server_port>
 """
 
+# Imports
 import sys
 import glob
+import argparse
+
+# Thrift setup 
 sys.path.append('gen-py')
 sys.path.insert(0, glob.glob('../thrift/thrift-0.19.0/lib/py/build/lib*')[0])
 
-# Thrift libraries
 from PA3 import replicaServer
 from PA3.ttypes import FileInfo, ContactInfo
-
 from thrift.transport import TSocket, TTransport
 from thrift.protocol import TBinaryProtocol
 
-import argparse
+# Debug printing
+DEBUG = 0
+def dprint(msg: str):
+    if DEBUG:
+        print(msg, flush=True)
 
-def list_files(server_ip, server_port):
-    transport = TSocket.TSocket(server_ip, server_port)
-    transport = TTransport.TBufferedTransport(transport)
+def open_client(ip, port):
+    """ Create thrift client by calling self.open_client to simplify thrift interaction """
+    dprint(f"Opening connection to {ip}:{port}")
+    sock = TSocket.TSocket(ip, port)
+    sock.setTimeout(2000) #2s timeout
+    transport = TTransport.TBufferedTransport(sock)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
     client = replicaServer.Client(protocol)
-
     transport.open()
+    return client, transport
 
-    fileList = client.list_files()
+def list_files(ip, port):
+    client, transport = open_client(ip, port)
 
-    print(f"Listing Files: ")
+    try:
+        files = client.list_files()
+    finally:
+        transport.close()
 
-    for file in fileList:
-        print(f"File: {file.name}, Version: {file.version}")
+    print("Files in DFS:")
+    for fi in files:
+        print(f"  {fi.name}  (v{fi.version})")
 
-    transport.close()
 
-def read_file(server_ip, server_port, filename):
-    transport = TSocket.TSocket(server_ip, server_port)
-    transport = TTransport.TBufferedTransport(transport)
-    protocol = TBinaryProtocol.TBinaryProtocol(transport)
-    client = replicaServer.Client(protocol)
+def read_file(ip, port, filename):
+    client, transport = open_client(ip, port)
+    try:
+        filepath = client.read_file(filename)
+    finally:
+        transport.close()
 
-    transport.open()
+    dprint(f"Pretend you're reading a file: {filename} at {filepath}")
 
-    filepath = client.read_file(filename)
-
-    print(f"Pretend you're reading a file: {filename} at {filepath}")
-
-    print(f"Done reading file")
+    dprint(f"Done reading file")
 
     #client.confirm_operation()
 
     transport.close()
 
-def write_file(server_ip, server_port, filename, filepath):
-    transport = TSocket.TSocket(server_ip, server_port)
-    transport = TTransport.TBufferedTransport(transport)
-    protocol = TBinaryProtocol.TBinaryProtocol(transport)
-    client = replicaServer.Client(protocol)
+def write_file(ip, port, filename, filepath):
+    dprint(f"Writing File: {filename} at path: {filepath}")
+    client, transport = open_client(ip, port)
 
-    transport.open()
-
-    print(f"Writing File: {filename} at path: {filepath}")
-
-    client.write_file(filename, filepath)
-
-    #client.confirm_operation()
-
-    transport.close()
-
-def main():
+    try:
+        client.write_file(filename, filepath)
+    finally:
+        transport.close()
+    
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Client for reading and writing")
     parser.add_argument("server_ip", type=str, help="Server IP address")
     parser.add_argument("server_port", type=int, help="Server port")
@@ -97,6 +100,3 @@ def main():
 
     elif args.write:
         write_file(args.server_ip, args.server_port, args.write[0], args.write[1])
-
-if __name__ == "__main__":
-    main()

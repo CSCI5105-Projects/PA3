@@ -243,11 +243,19 @@ class ReplicaServerHandler():
         """Called from server, inserts a job"""
 
         # Enforce sequential consistency
-        with self._coord_lock:
-            dprint(f"Coordinator: processing {request.type} {request.filename}")
-            if request.type == "read":
-                return self.cord_read_file(request.filename)
-            return self.cord_write_file(request.filename)
+
+        self._coord_lock.acquire()
+
+        dprint(f"Coordinator: processing {request.type} {request.filename}")
+        if request.type == "read":
+            return self.cord_read_file(request.filename)
+        return self.cord_write_file(request.filename)
+
+        # with self._coord_lock:
+        #     dprint(f"Coordinator: processing {request.type} {request.filename}")
+        #     if request.type == "read":
+        #         return self.cord_read_file(request.filename)
+        #     return self.cord_write_file(request.filename)
 
     # ██████╗ ███████╗██████╗ ██╗     ██╗ ██████╗ █████╗                        
     # ██╔══██╗██╔════╝██╔══██╗██║     ██║██╔════╝██╔══██╗                       
@@ -293,6 +301,8 @@ class ReplicaServerHandler():
         if local_version < response.version: # Update file if needed
             dprint(f"Read Operation: Copying File")
             self.copy_file(response.version, filename, response.contact.ip, response.contact.port)
+        else:
+            dprint(f"Local Copy Already Most Recent Version")
         
         # ACK
         client, transport = self.open_client(self.coordinatorContact.ip, self.coordinatorContact.port)
@@ -351,9 +361,12 @@ class ReplicaServerHandler():
                 finally:
                     transport.close()
             self.chosenServers = None
+        self._coord_lock.release()
+        
 
     def finish_read(self):
         self.chosenServers = None
+        self._coord_lock.release()
 
 def run_replica_server(node_ip, node_port, storage_path):
     handler = ReplicaServerHandler(node_ip, node_port, storage_path)

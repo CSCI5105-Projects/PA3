@@ -19,7 +19,7 @@ sys.path.append('gen-py')
 sys.path.insert(0, glob.glob('../thrift/thrift-0.19.0/lib/py/build/lib*')[0])
 
 from PA3 import replicaServer
-from PA3.ttypes import FileInfo, ContactInfo
+from PA3.ttypes import FileInfo, ContactInfo, CompleteInfo
 from thrift.transport import TSocket, TTransport
 from thrift.protocol import TBinaryProtocol
 
@@ -48,9 +48,11 @@ def list_files(ip, port):
     finally:
         transport.close()
 
-    print("Files in DFS:")
-    for fi in files:
-        print(f"  {fi.name}  (v{fi.version})")
+    for server in files:
+        print(f"Server: {server.contact.ip}, {server.contact.port}, Stored Files: ")
+        for file in server.files:
+            print(f"{file.name}  (v{file.version})")
+
 
 
 def read_file(ip, port, filename):

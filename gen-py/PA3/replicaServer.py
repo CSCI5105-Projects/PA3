@@ -991,11 +991,11 @@ class list_files_result(object):
             if fid == 0:
                 if ftype == TType.LIST:
                     self.success = []
-                    (_etype3, _size0) = iprot.readListBegin()
-                    for _i4 in range(_size0):
-                        _elem5 = FileInfo()
-                        _elem5.read(iprot)
-                        self.success.append(_elem5)
+                    (_etype10, _size7) = iprot.readListBegin()
+                    for _i11 in range(_size7):
+                        _elem12 = CompleteInfo()
+                        _elem12.read(iprot)
+                        self.success.append(_elem12)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1012,8 +1012,8 @@ class list_files_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
-            for iter6 in self.success:
-                iter6.write(oprot)
+            for iter13 in self.success:
+                iter13.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -1034,7 +1034,7 @@ class list_files_result(object):
         return not (self == other)
 all_structs.append(list_files_result)
 list_files_result.thrift_spec = (
-    (0, TType.LIST, 'success', (TType.STRUCT, [FileInfo, None], False), None, ),  # 0
+    (0, TType.LIST, 'success', (TType.STRUCT, [CompleteInfo, None], False), None, ),  # 0
 )
 
 
@@ -1553,11 +1553,11 @@ class get_all_files_result(object):
             if fid == 0:
                 if ftype == TType.LIST:
                     self.success = []
-                    (_etype10, _size7) = iprot.readListBegin()
-                    for _i11 in range(_size7):
-                        _elem12 = FileInfo()
-                        _elem12.read(iprot)
-                        self.success.append(_elem12)
+                    (_etype17, _size14) = iprot.readListBegin()
+                    for _i18 in range(_size14):
+                        _elem19 = FileInfo()
+                        _elem19.read(iprot)
+                        self.success.append(_elem19)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -1574,8 +1574,8 @@ class get_all_files_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
-            for iter13 in self.success:
-                iter13.write(oprot)
+            for iter20 in self.success:
+                iter20.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -2171,11 +2171,11 @@ class cord_list_files_result(object):
             if fid == 0:
                 if ftype == TType.LIST:
                     self.success = []
-                    (_etype17, _size14) = iprot.readListBegin()
-                    for _i18 in range(_size14):
-                        _elem19 = FileInfo()
-                        _elem19.read(iprot)
-                        self.success.append(_elem19)
+                    (_etype24, _size21) = iprot.readListBegin()
+                    for _i25 in range(_size21):
+                        _elem26 = CompleteInfo()
+                        _elem26.read(iprot)
+                        self.success.append(_elem26)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -2192,8 +2192,8 @@ class cord_list_files_result(object):
         if self.success is not None:
             oprot.writeFieldBegin('success', TType.LIST, 0)
             oprot.writeListBegin(TType.STRUCT, len(self.success))
-            for iter20 in self.success:
-                iter20.write(oprot)
+            for iter27 in self.success:
+                iter27.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -2214,7 +2214,7 @@ class cord_list_files_result(object):
         return not (self == other)
 all_structs.append(cord_list_files_result)
 cord_list_files_result.thrift_spec = (
-    (0, TType.LIST, 'success', (TType.STRUCT, [FileInfo, None], False), None, ),  # 0
+    (0, TType.LIST, 'success', (TType.STRUCT, [CompleteInfo, None], False), None, ),  # 0
 )
 
 

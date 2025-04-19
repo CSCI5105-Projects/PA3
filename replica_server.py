@@ -24,7 +24,7 @@ sys.path.append('gen-py')
 sys.path.insert(0, glob.glob('../thrift/thrift-0.19.0/lib/py/build/lib*')[0])
 
 from PA3 import replicaServer
-from PA3.ttypes import FileInfo, ContactInfo, Request, Response
+from PA3.ttypes import FileInfo, ContactInfo, Request, Response, CompleteInfo
 from thrift.transport import TSocket, TTransport
 from thrift.protocol import TBinaryProtocol
 from thrift.server import TServer
@@ -188,6 +188,10 @@ class ReplicaServerHandler():
         """Called onto Coordinator"""
         fileList = self.contained_files[:]
         dprint(self.contained_files)
+
+        allFiles = []
+        allFiles.append(CompleteInfo(self.info, fileList))
+        
         
         for server in self.server_list:
             if server == self.info:
@@ -197,15 +201,8 @@ class ReplicaServerHandler():
                 returnedFileList = client.get_all_files()
             finally:
                 transport.close()
-            for remoteFile in returnedFileList:
-                for localFile in fileList:
-                    if remoteFile.name == localFile.name:
-                        if remoteFile.version > localFile.version:
-                            localFile.version = remoteFile.version
-                        break
-                else:
-                    fileList.append(remoteFile)
-        return fileList
+            allFiles.append(CompleteInfo(server, returnedFileList))
+        return allFiles
     
     def cord_read_file(self, filename):
         """Internal Coordinator Function"""

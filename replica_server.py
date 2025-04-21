@@ -64,6 +64,7 @@ class ReplicaServerHandler():
 
         # Setup lock for coordinator to ensure sequential consistency
         self._coord_lock = threading.Lock()
+        self._queue_lock = threading.Lock()
 
         # Import compute nodes from compute_nodes.txt
         self.import_compute_nodes()
@@ -98,6 +99,8 @@ class ReplicaServerHandler():
         self.jobQueue = queue.Queue()
         self.chosenServers = None
         self.currentTask = None
+        self.taskNumberAssigned = 0
+        self.taskNumberProcessing = 0
 
     # ██╗  ██╗███████╗██╗     ██████╗ ███████╗██████╗ 
     # ██║  ██║██╔════╝██║     ██╔══██╗██╔════╝██╔══██╗
@@ -239,14 +242,29 @@ class ReplicaServerHandler():
     def insert_job(self, request):
         """Called from server, inserts a job"""
 
-        # Enforce sequential consistency
+        # Assign each request its own task number incrementally
+        self._queue_lock.acquire()
 
-        self._coord_lock.acquire()
+        taskNumber = self.taskNumberAssigned
+        self.taskNumberAssigned += 1
 
-        dprint(f"Coordinator: processing {request.type} {request.filename}")
-        if request.type == "read":
-            return self.cord_read_file(request.filename)
-        return self.cord_write_file(request.filename)
+        self._queue_lock.release()
+
+
+        while(True):
+            self._coord_lock.acquire()
+
+            # Verifies sequential ordering 
+            if (taskNumber == self.taskNumberProcessing):
+                None
+            else:
+                self._coord_lock.release()
+                continue
+
+            dprint(f"Coordinator: processing {request.type} {request.filename}")
+            if request.type == "read":
+                return self.cord_read_file(request.filename)
+            return self.cord_write_file(request.filename)
 
         # with self._coord_lock:
         #     dprint(f"Coordinator: processing {request.type} {request.filename}")
@@ -358,11 +376,13 @@ class ReplicaServerHandler():
                 finally:
                     transport.close()
             self.chosenServers = None
+        self.taskNumberProcessing += 1
         self._coord_lock.release()
         
 
     def finish_read(self):
         self.chosenServers = None
+        self.taskNumberProcessing += 1
         self._coord_lock.release()
 
 def run_replica_server(node_ip, node_port, storage_path):

@@ -18,6 +18,7 @@ import random
 import shutil
 import threading
 import argparse
+import time
 
 # Thrift setup 
 sys.path.append('gen-py')
@@ -120,7 +121,7 @@ class ReplicaServerHandler():
         """ Create thrift client by calling self.open_client to simplify thrift interaction """
         dprint(f"Opening connection to {ip}:{port}")
         sock = TSocket.TSocket(ip, port)
-        sock.setTimeout(2000) # 2s timeout
+        # sock.setTimeout(2000) # 2s timeout
         transport = TTransport.TBufferedTransport(sock)
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
         client = replicaServer.Client(protocol)
@@ -243,28 +244,46 @@ class ReplicaServerHandler():
         """Called from server, inserts a job"""
 
         # Assign each request its own task number incrementally
-        self._queue_lock.acquire()
+        # self._queue_lock.acquire()
 
-        taskNumber = self.taskNumberAssigned
-        self.taskNumberAssigned += 1
+        # taskNumber = self.taskNumberAssigned
+        # self.taskNumberAssigned += 1
 
-        self._queue_lock.release()
+        # self._queue_lock.release()
+
+        with self._queue_lock:
+            taskNumber = self.taskNumberAssigned
+            self.taskNumberAssigned += 1
 
 
-        while(True):
-            self._coord_lock.acquire()
+        while True:
+            with self._coord_lock:
+                if taskNumber != self.taskNumberProcessing:
+                    # not our turn yet, someone else is processing
+                    pass
+                else:
+                    # it *is* our turn, process the read or write quorum
+                    if request.type == "read":
+                        response = self.cord_read_file(request.filename)
+                    else:
+                        response = self.cord_write_file(request.filename)
 
-            # Verifies sequential ordering 
-            if (taskNumber == self.taskNumberProcessing):
-                None
-            else:
-                self._coord_lock.release()
-                continue
+                    self.taskNumberProcessing += 1
+                    return response
+            time.sleep(0.005)
+            # self._coord_lock.acquire()
 
-            dprint(f"Coordinator: processing {request.type} {request.filename}")
-            if request.type == "read":
-                return self.cord_read_file(request.filename)
-            return self.cord_write_file(request.filename)
+            # # Verifies sequential ordering 
+            # if (taskNumber == self.taskNumberProcessing):
+            #     None
+            # else:
+            #     self._coord_lock.release()
+            #     continue
+
+            # dprint(f"Coordinator: processing {request.type} {request.filename}")
+            # if request.type == "read":
+            #     return self.cord_read_file(request.filename)
+            # return self.cord_write_file(request.filename)
 
         # with self._coord_lock:
         #     dprint(f"Coordinator: processing {request.type} {request.filename}")
@@ -376,14 +395,14 @@ class ReplicaServerHandler():
                 finally:
                     transport.close()
             self.chosenServers = None
-        self.taskNumberProcessing += 1
-        self._coord_lock.release()
+        # self.taskNumberProcessing += 1
+        # self._coord_lock.release()
         
 
     def finish_read(self):
         self.chosenServers = None
-        self.taskNumberProcessing += 1
-        self._coord_lock.release()
+        # self.taskNumberProcessing += 1
+        # self._coord_lock.release()
 
 def run_replica_server(node_ip, node_port, storage_path):
     handler = ReplicaServerHandler(node_ip, node_port, storage_path)
@@ -392,6 +411,7 @@ def run_replica_server(node_ip, node_port, storage_path):
     tfactory = TTransport.TBufferedTransportFactory()
     pfactory = TBinaryProtocol.TBinaryProtocolFactory()
     server = TServer.TThreadPoolServer(processor, transport, tfactory, pfactory)
+    server.setNumThreads(16)
 
     print(f'Replica Server running @ {node_port} (coord={handler.role == 1})')
     server.serve()

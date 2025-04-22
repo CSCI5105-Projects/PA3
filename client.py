@@ -33,7 +33,7 @@ def open_client(ip, port):
     """ Create thrift client by calling self.open_client to simplify thrift interaction """
     dprint(f"Opening connection to {ip}:{port}")
     sock = TSocket.TSocket(ip, port)
-    sock.setTimeout(2000) #2s timeout
+    # sock.setTimeout(2000) #2s timeout
     transport = TTransport.TBufferedTransport(sock)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
     client = replicaServer.Client(protocol)
@@ -67,8 +67,6 @@ def read_file(ip, port, filename):
     dprint(f"Done reading file")
 
     #client.confirm_operation()
-
-    transport.close()
 
 def write_file(ip, port, filename, filepath):
     dprint(f"Writing File: {filename} at path: {filepath}")

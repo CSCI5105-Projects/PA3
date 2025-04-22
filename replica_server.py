@@ -255,7 +255,6 @@ class ReplicaServerHandler():
             taskNumber = self.taskNumberAssigned
             self.taskNumberAssigned += 1
 
-
         while True:
             with self._coord_lock:
                 if taskNumber != self.taskNumberProcessing:
@@ -384,20 +383,35 @@ class ReplicaServerHandler():
     # ██████╔╝██║  ██║╚██████╗██║  ██╗███████║
     # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝
                                         
-    def finish_write(self, version, filename, ip, port, source_ip, source_port):
-        if self.chosenServers:
-            for server in self.chosenServers:
-                if (source_ip, source_port) == (server.ip, server.port):
-                    continue
-                client, transport = self.open_client(server.ip, server.port)
-                try:
-                    client.copy_file(version, filename, ip, port)
-                finally:
-                    transport.close()
-            self.chosenServers = None
-        # self.taskNumberProcessing += 1
-        # self._coord_lock.release()
+    # def finish_write(self, version, filename, ip, port, source_ip, source_port):
+    #     if self.chosenServers:
+    #         for server in self.chosenServers:
+    #             if (source_ip, source_port) == (server.ip, server.port):
+    #                 continue
+    #             client, transport = self.open_client(server.ip, server.port)
+    #             try:
+    #                 client.copy_file(version, filename, ip, port)
+    #             finally:
+    #                 transport.close()
+    #         self.chosenServers = None
+    #     # self.taskNumberProcessing += 1
+    #     # self._coord_lock.release()
         
+
+    def finish_write(self, version, filename, ip, port, source_ip, source_port):
+        # Hold the coordinator lock while pushing updates to the write quorum
+        with self._coord_lock:
+            if self.chosenServers:
+                for server in self.chosenServers:
+                    # skip the original writer
+                    if (source_ip, source_port) == (server.ip, server.port):
+                        continue
+                    client, transport = self.open_client(server.ip, server.port)
+                    try:
+                        client.copy_file(version, filename, ip, port)
+                    finally:
+                        transport.close()
+                self.chosenServers = None
 
     def finish_read(self):
         self.chosenServers = None

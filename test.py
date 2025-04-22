@@ -26,28 +26,34 @@ def find_free_port():
         return s.getsockname()[1]
 
 
-def compute_quorums(N):
-    NW = N // 2 + 1
-    NR = N - NW + 1
-    return NR, NW
+def compute_valid_quorums(N):
+    """
+    Return all (NR,NW) pairs satisfying NR + NW > N and NW > N/2
+    """
+    quorums = []
+    for NR in range(1, N+1):
+        for NW in range(1, N+1):
+            if NR + NW > N and NW > N/2:
+                quorums.append((NR, NW))
+    return quorums
 
 
-def write_compute_nodes(ports):
+def write_compute_nodes(ports, NR, NW):
     N = len(ports)
-    NR, NW = compute_quorums(N)
     with open("compute_nodes.txt", "w") as f:
         f.write(f"{NR},{NW}\n")
         for i, p in enumerate(ports):
             role = 1 if i == 0 else 0
             f.write(f"{HOST},{p},{role}\n")
-    print(f"→ computed NR={NR}, NW={NW} for N={N}")
+    print(f"→ configured NR={NR}, NW={NW} for N={N}")
 
 
 def launch_replicas(ports):
     procs = []
+    # clean test directory
     if os.path.isdir(TEST_DIR): shutil.rmtree(TEST_DIR)
     os.makedirs(TEST_DIR)
-    for i,p in enumerate(ports):
+    for i, p in enumerate(ports):
         storage = os.path.join(TEST_DIR, f"node_{i}")
         os.makedirs(storage, exist_ok=True)
         cmd = ["python3", REPLICA_SCRIPT, HOST, str(p), storage, "-d"]
@@ -64,104 +70,121 @@ def run_client(cmd, results, idx):
 
 
 def smoke_test(ports):
-    # basic smoke test
-    if len(ports)<3: return
+    # basic smoke test for single quorum
+    if len(ports) < 3:
+        return
     # ensure hello.txt exists
-    with open("hello.txt","w") as f: f.write("hello,PA3!\n")
-    # write
-    run_client(["python3",CLIENT_SCRIPT,HOST,str(ports[0]),"--write","hello.txt","hello.txt"], {},0)
+    with open("hello.txt", "w") as f:
+        f.write("hello,PA3!\n")
+    # write via first replica
+    run_client(["python3", CLIENT_SCRIPT, HOST, str(ports[0]), "--write", "hello.txt", "hello.txt"], {}, 0)
     time.sleep(0.2)
 
 
 def concurrent_test(ports, num_clients, workload='read'):
     threads = []
-    results = [None]*num_clients
-    # prepare hello.txt for reads
-    if workload=='read':
-        with open("hello.txt","w") as f: f.write("hello,PA3!\n")
-        run_client(["python3",CLIENT_SCRIPT,HOST,str(ports[0]),"--write","hello.txt","hello.txt"],{},0)
+    results = [None] * num_clients
+    # prepare for reads
+    if workload == 'read':
+        with open("hello.txt", "w") as f:
+            f.write("hello,PA3!\n")
+        run_client(["python3", CLIENT_SCRIPT, HOST, str(ports[0]), "--write", "hello.txt", "hello.txt"], {}, 0)
         time.sleep(0.2)
+
     for i in range(num_clients):
         target = ports[i % len(ports)]
-        if workload=='read':
-            cmd=["python3",CLIENT_SCRIPT,HOST,str(target),"--read","hello.txt"]
+        if workload == 'read':
+            cmd = ["python3", CLIENT_SCRIPT, HOST, str(target), "--read", "hello.txt"]
         else:
-            # generate unique file
-            fname=f"file_{i}.txt"
-            with open(fname,'w') as f: f.write(f"data {i}\n")
-            cmd=["python3",CLIENT_SCRIPT,HOST,str(target),"--write",fname,fname]
-        t=threading.Thread(target=run_client,args=(cmd,results,i))
+            # unique file per client
+            fname = f"file_{i}.txt"
+            with open(fname, 'w') as f:
+                f.write(f"data {i}\n")
+            cmd = ["python3", CLIENT_SCRIPT, HOST, str(target), "--write", fname, fname]
+        t = threading.Thread(target=run_client, args=(cmd, results, i))
         threads.append(t)
-    start=time.time()
+
+    start = time.time()
     for t in threads: t.start()
     for t in threads: t.join()
-    duration=time.time()-start
-    return duration
+    return time.time() - start
 
 
 def shutdown_procs(procs):
     for p in procs: p.terminate()
     time.sleep(SHUTDOWN_WAIT)
     for p in procs:
-        if p.poll() is None: p.kill()
+        if p.poll() is None:
+            p.kill()
     for p in procs: p.wait()
 
 
 def record_results_csv(fieldnames, rows):
-    with open(RESULTS_FILE,'w',newline='') as f:
-        w=csv.writer(f)
+    with open(RESULTS_FILE, 'w', newline='') as f:
+        w = csv.writer(f)
         w.writerow(fieldnames)
         w.writerows(rows)
 
 
-def plot_heatmap(data, title, fname):
+def plot_heatmap(data, x_label, y_label, title, fname):
     import numpy as np
-    qs=sorted({r[0] for r in data})
-    cs=sorted({r[1] for r in data})
-    mat=np.zeros((len(cs),len(qs)))
-    for q,c,t in data:
-        i=cs.index(c); j=qs.index(q)
-        mat[i,j]=t
+    xs = sorted({r[0] for r in data})
+    ys = sorted({r[1] for r in data})
+    mat = np.zeros((len(ys), len(xs)))
+    for x, y, t in data:
+        mat[ys.index(y), xs.index(x)] = t
+
     plt.figure()
-    plt.imshow(mat,aspect='auto',origin='lower')
+    plt.imshow(mat, aspect='auto', origin='lower')
     plt.colorbar(label='Time(s)')
-    plt.xticks(range(len(qs)),qs)
-    plt.yticks(range(len(cs)),cs)
-    plt.xlabel('Num Replicas')
-    plt.ylabel('Num Clients')
+    plt.xticks(range(len(xs)), xs)
+    plt.yticks(range(len(ys)), ys)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
     plt.title(title)
     plt.savefig(fname)
     print(f"Saved heatmap {fname}")
 
 
 def main():
-    p=argparse.ArgumentParser()
-    p.add_argument('max_nodes',type=int)
-    p.add_argument('max_clients',type=int)
-    p.add_argument('--plot',action='store_true')
-    args=p.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('max_nodes', type=int)
+    parser.add_argument('max_clients', type=int)
+    parser.add_argument('--plot', action='store_true')
+    args = parser.parse_args()
 
-    if args.max_nodes<3 or args.max_clients<1:
-        print('Need >=3 nodes and >=1 clients'); return
+    if args.max_nodes < 3 or args.max_clients < 1:
+        print('Need >=3 nodes and >=1 clients')
+        return
 
-    results=[]  # [replicas, clients, read_time, write_time]
-    for n in range(3,args.max_nodes+1):
-        ports=[find_free_port() for _ in range(n)]
-        write_compute_nodes(ports)
-        procs=launch_replicas(ports)
-        time.sleep(QUORUM_DELAY)
-        for c in range(1,args.max_clients+1):
-            rt=concurrent_test(ports,c,'read')
-            wt=concurrent_test(ports,c,'write')
-            print(f"n={n}, clients={c}, read={rt:.2f}s, write={wt:.2f}s")
-            results.append([n,c,round(rt,2),round(wt,2)])
-        shutdown_procs(procs)
+    results = []  # [nodes, NR, NW, clients, read_s, write_s]
 
-    record_results_csv(['replicas','clients','read_s','write_s'],results)
+    for n in range(3, args.max_nodes + 1):
+        ports = [find_free_port() for _ in range(n)]
+        # try every valid quorum config
+        for NR, NW in compute_valid_quorums(n):
+            write_compute_nodes(ports, NR, NW)
+            procs = launch_replicas(ports)
+            time.sleep(QUORUM_DELAY)
+
+            for c in range(1, args.max_clients + 1):
+                rt = concurrent_test(ports, c, 'read')
+                wt = concurrent_test(ports, c, 'write')
+                print(f"n={n}, NR={NR}, NW={NW}, clients={c}, read={rt:.2f}s, write={wt:.2f}s")
+                results.append([n, NR, NW, c, round(rt, 2), round(wt, 2)])
+
+            shutdown_procs(procs)
+
+    # write out CSV
+    headers = ['nodes', 'NR', 'NW', 'clients', 'read_s', 'write_s']
+    record_results_csv(headers, results)
 
     if args.plot:
-        # plot read and write heatmaps
-        plot_heatmap([(r[0],r[1],r[2]) for r in results],'Read Heatmap','read_heatmap.png')
-        plot_heatmap([(r[0],r[1],r[3]) for r in results],'Write Heatmap','write_heatmap.png')
+        # heatmap of best read time per quorum size (example using NR,NW)
+        # filter for a fixed client count or average as needed
+        plot_heatmap([(r[1], r[2], r[4]) for r in results], 'NR', 'NW', 'Read Times', 'read_heatmap.png')
+        plot_heatmap([(r[1], r[2], r[5]) for r in results], 'NR', 'NW', 'Write Times', 'write_heatmap.png')
 
-if __name__=='__main__': main()
+
+if __name__ == '__main__':
+    main()

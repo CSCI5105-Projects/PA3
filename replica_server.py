@@ -267,7 +267,7 @@ class ReplicaServerHandler():
                     else:
                         response = self.cord_write_file(request.filename)
 
-                    self.taskNumberProcessing += 1
+                    # self.taskNumberProcessing += 1
                     return response
             time.sleep(0.005)
             # self._coord_lock.acquire()
@@ -412,9 +412,13 @@ class ReplicaServerHandler():
                     finally:
                         transport.close()
                 self.chosenServers = None
+            self.currentServers = None
+            self.taskNumberProcessing += 1
 
     def finish_read(self):
-        self.chosenServers = None
+        with self._coord_lock:
+            self.chosenServers = None
+            self.taskNumberProcessing += 1
         # self.taskNumberProcessing += 1
         # self._coord_lock.release()
 

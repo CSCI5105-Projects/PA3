@@ -4,15 +4,33 @@
 """
 Client for reading and writing to replica server
 
-Command line:
+Usage: 
+    python3 client.py [-h] [-l] [-r READ] [-w WRITE WRITE] [-d] server_ip server_port
 
-python3 client.py <server_ip> <server_port>
+    Client for reading and writing
+
+    Positional arguments:
+        server_ip             Server IP address
+        server_port           Server port
+
+    Options:
+        -h, --help            show this help message and exit
+        -l, --list            List all files and versions
+        -r READ, --read READ  Read a file with given filename
+        -w WRITE WRITE, --write WRITE WRITE
+                                Write a file with given filename and filepath
+        -d, --debug           Enable debug output
 """
 
+#  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ 
+# ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ 
+# ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+# ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+# ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+#  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝                          
+
 # Imports
-import sys
-import glob
-import argparse
+import sys, glob, argparse
 
 # Thrift setup 
 sys.path.append('gen-py')
@@ -29,6 +47,14 @@ def dprint(msg: str):
     if DEBUG:
         print(msg, flush=True)
 
+
+#  ██╗  ██╗███████╗██╗     ██████╗ ███████╗██████╗ ███████╗
+#  ██║  ██║██╔════╝██║     ██╔══██╗██╔════╝██╔══██╗██╔════╝
+#  ███████║█████╗  ██║     ██████╔╝█████╗  ██████╔╝███████╗
+#  ██╔══██║██╔══╝  ██║     ██╔═══╝ ██╔══╝  ██╔══██╗╚════██║
+#  ██║  ██║███████╗███████╗██║     ███████╗██║  ██║███████║
+#  ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝     ╚══════╝╚═╝  ╚═╝╚══════╝
+
 def open_client(ip, port):
     """ Create thrift client by calling self.open_client to simplify thrift interaction """
     dprint(f"Opening connection to {ip}:{port}")
@@ -39,6 +65,20 @@ def open_client(ip, port):
     client = replicaServer.Client(protocol)
     transport.open()
     return client, transport
+
+#  ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗ 
+#  ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗
+#  ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝
+#  ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗
+#  ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
+#  ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+#                                                   
+#   ██████╗ █████╗ ██╗     ██╗     ███████╗         
+#  ██╔════╝██╔══██╗██║     ██║     ██╔════╝         
+#  ██║     ███████║██║     ██║     ███████╗         
+#  ██║     ██╔══██║██║     ██║     ╚════██║         
+#  ╚██████╗██║  ██║███████╗███████╗███████║         
+#   ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝         
 
 def list_files(ip, port):
     client, transport = open_client(ip, port)
@@ -53,8 +93,6 @@ def list_files(ip, port):
         for file in server.files:
             print(f"{file.name}  (v{file.version})")
 
-
-
 def read_file(ip, port, filename):
     client, transport = open_client(ip, port)
     try:
@@ -63,10 +101,7 @@ def read_file(ip, port, filename):
         transport.close()
 
     dprint(f"Pretend you're reading a file: {filename} at {filepath}")
-
     dprint(f"Done reading file")
-
-    #client.confirm_operation()
 
 def write_file(ip, port, filename, filepath):
     dprint(f"Writing File: {filename} at path: {filepath}")
@@ -76,8 +111,15 @@ def write_file(ip, port, filename, filepath):
         client.write_file(filename, filepath)
     finally:
         transport.close()
-    
-if __name__ == "__main__":
+
+#  ███╗   ███╗ █████╗ ██╗███╗   ██╗
+#  ████╗ ████║██╔══██╗██║████╗  ██║
+#  ██╔████╔██║███████║██║██╔██╗ ██║
+#  ██║╚██╔╝██║██╔══██║██║██║╚██╗██║
+#  ██║ ╚═╝ ██║██║  ██║██║██║ ╚████║
+#  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+
+def main():
     parser = argparse.ArgumentParser(description="Client for reading and writing")
     parser.add_argument("server_ip", type=str, help="Server IP address")
     parser.add_argument("server_port", type=int, help="Server port")
@@ -100,3 +142,6 @@ if __name__ == "__main__":
 
     elif args.write:
         write_file(args.server_ip, args.server_port, args.write[0], args.write[1])
+    
+if __name__ == "__main__":
+    main()

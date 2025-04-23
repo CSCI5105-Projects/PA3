@@ -4,21 +4,30 @@
 """ 
 Stores replicated file information
 
-Command line:
+Usage: 
+    python3 replica_server.py [-h] [-d] node_ip node_port storage_path
 
-python3 replica_server.py <ip> <port> <storage_dir> [-d]
+    Replica Server in DFS Network
+
+    Positional arguments:
+        node_ip       ip for replica server
+        node_port     Port number for replica server
+        storage_path  path to store data in
+
+    Options:
+        -h, --help    show this help message and exit
+        -d, --debug   Enable debug output
 """
 
+#  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ 
+# ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ 
+# ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+# ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+# ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+#  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝                          
+
 # Imports
-import sys
-import glob
-import queue
-import os
-import random
-import shutil
-import threading
-import argparse
-import time
+import sys, glob, queue, os, random, shutil, threading, argparse, time
 
 # Thrift setup 
 sys.path.append('gen-py')
@@ -163,7 +172,7 @@ class ReplicaServerHandler():
         
     def copy_file(self, version, filename, ip, port):
         """Copies a given file from a another given node"""
-        #Note: Used chatgpt to figure out how the thrift binary and binary read/write works (there is no thrift binary documentation)
+        # Note: Used chatgpt to figure out how the thrift binary and binary read/write works (there is no thrift binary documentation)
         client, trans = self.open_client(ip, port)
         try:
             size = client.get_file_size(filename)
@@ -243,14 +252,6 @@ class ReplicaServerHandler():
     def insert_job(self, request):
         """Called from server, inserts a job"""
 
-        # Assign each request its own task number incrementally
-        # self._queue_lock.acquire()
-
-        # taskNumber = self.taskNumberAssigned
-        # self.taskNumberAssigned += 1
-
-        # self._queue_lock.release()
-
         with self._queue_lock:
             taskNumber = self.taskNumberAssigned
             self.taskNumberAssigned += 1
@@ -270,25 +271,6 @@ class ReplicaServerHandler():
                     # self.taskNumberProcessing += 1
                     return response
             time.sleep(0.005)
-            # self._coord_lock.acquire()
-
-            # # Verifies sequential ordering 
-            # if (taskNumber == self.taskNumberProcessing):
-            #     None
-            # else:
-            #     self._coord_lock.release()
-            #     continue
-
-            # dprint(f"Coordinator: processing {request.type} {request.filename}")
-            # if request.type == "read":
-            #     return self.cord_read_file(request.filename)
-            # return self.cord_write_file(request.filename)
-
-        # with self._coord_lock:
-        #     dprint(f"Coordinator: processing {request.type} {request.filename}")
-        #     if request.type == "read":
-        #         return self.cord_read_file(request.filename)
-        #     return self.cord_write_file(request.filename)
 
     # ██████╗ ███████╗██████╗ ██╗     ██╗ ██████╗ █████╗                        
     # ██╔══██╗██╔════╝██╔══██╗██║     ██║██╔════╝██╔══██╗                       
@@ -383,21 +365,6 @@ class ReplicaServerHandler():
     # ██████╔╝██║  ██║╚██████╗██║  ██╗███████║
     # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝
                                         
-    # def finish_write(self, version, filename, ip, port, source_ip, source_port):
-    #     if self.chosenServers:
-    #         for server in self.chosenServers:
-    #             if (source_ip, source_port) == (server.ip, server.port):
-    #                 continue
-    #             client, transport = self.open_client(server.ip, server.port)
-    #             try:
-    #                 client.copy_file(version, filename, ip, port)
-    #             finally:
-    #                 transport.close()
-    #         self.chosenServers = None
-    #     # self.taskNumberProcessing += 1
-    #     # self._coord_lock.release()
-        
-
     def finish_write(self, version, filename, ip, port, source_ip, source_port):
         # Hold the coordinator lock while pushing updates to the write quorum
         with self._coord_lock:
@@ -419,8 +386,13 @@ class ReplicaServerHandler():
         with self._coord_lock:
             self.chosenServers = None
             self.taskNumberProcessing += 1
-        # self.taskNumberProcessing += 1
-        # self._coord_lock.release()
+
+#  ███╗   ███╗ █████╗ ██╗███╗   ██╗
+#  ████╗ ████║██╔══██╗██║████╗  ██║
+#  ██╔████╔██║███████║██║██╔██╗ ██║
+#  ██║╚██╔╝██║██╔══██║██║██║╚██╗██║
+#  ██║ ╚═╝ ██║██║  ██║██║██║ ╚████║
+#  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 
 def run_replica_server(node_ip, node_port, storage_path):
     handler = ReplicaServerHandler(node_ip, node_port, storage_path)
@@ -434,7 +406,7 @@ def run_replica_server(node_ip, node_port, storage_path):
     print(f'Replica Server running @ {node_port} (coord={handler.role == 1})')
     server.serve()
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Replica Server in DFS Network")
     parser.add_argument("node_ip", type=str, help="ip for replica server")
     parser.add_argument("node_port", type=int, help="Port number for replica server")
@@ -446,3 +418,6 @@ if __name__ == "__main__":
         DEBUG = 1
     
     run_replica_server(args.node_ip, args.node_port, args.storage_path)
+
+if __name__ == "__main__":
+    main()

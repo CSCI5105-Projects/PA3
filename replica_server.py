@@ -205,7 +205,6 @@ class ReplicaServerHandler():
         allFiles = []
         allFiles.append(CompleteInfo(self.info, fileList))
         
-        
         for server in self.server_list:
             if server == self.info:
                 continue

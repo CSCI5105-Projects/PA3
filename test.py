@@ -228,7 +228,6 @@ def generate_all_heatmaps(results, plot_flag):
         save_heatmap(subset_read,  "NR", "NW", f"Read Times (n={n}, c={c})",  f"{base}_read.png")
         save_heatmap(subset_write, "NR", "NW", f"Write Times (n={n}, c={c})", f"{base}_write.png")
 
-
 #   ██████╗██╗     ███████╗ █████╗ ███╗   ██╗██╗   ██╗██████╗ 
 #  ██╔════╝██║     ██╔════╝██╔══██╗████╗  ██║██║   ██║██╔══██╗
 #  ██║     ██║     █████╗  ███████║██╔██╗ ██║██║   ██║██████╔╝

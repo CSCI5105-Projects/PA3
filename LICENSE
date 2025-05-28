@@ -1,21 +1,23 @@
-MIT License
-
+Custom Educational Use License
 Copyright (c) 2025 Matthew Breach and Lily Hymes
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted to any individual to view and study this software and its source code (the "Software") for personal, non-commercial, and educational purposes only, under the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. No Academic Use in Coursework 
+   The Software or any portion thereof may not be copied, reproduced, modified, adapted, or submitted—either directly or indirectly—as part of any academic assignment, project, exam, or coursework at any educational institution. Doing so constitutes a violation of academic integrity and is strictly prohibited.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. No Distribution or Publication
+   Redistribution, republication, sublicensing, hosting, or publication of this Software or any derivative works in any form—digital or printed—is not permitted without the explicit written consent of both original authors.
+
+3. No Commercial Use
+   The Software may not be used, either in whole or in part, for commercial purposes, including but not limited to product development, service offerings, consulting, or business operations.
+
+4. No Modification for Public Use
+   You may not modify this Software or create derivative works for any form of public or private release, including public GitHub repositories, without explicit written permission from both authors.
+
+5. No Warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+By viewing or accessing any files within this repository, you agree to be bound by all terms stated above.
+
+If you have questions about permitted use or would like to request permission for broader use, please contact the authors directly.
